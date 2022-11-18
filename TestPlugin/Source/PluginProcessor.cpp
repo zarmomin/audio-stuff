@@ -22,6 +22,7 @@ TestPluginAudioProcessor::TestPluginAudioProcessor()
                        ), level(1.0f), levelPrevious(1.0f)
 #endif
 {
+    transportSource.setLooping(true);
 }
 
 TestPluginAudioProcessor::~TestPluginAudioProcessor()
@@ -93,14 +94,13 @@ void TestPluginAudioProcessor::changeProgramName (int index, const juce::String&
 //==============================================================================
 void TestPluginAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
-    // Use this method as the place to do any pre-playback
-    // initialisation that you need..
+    transportSource.prepareToPlay (samplesPerBlock, sampleRate);
+    meterSource.resize (getTotalNumOutputChannels(), sampleRate * 0.1 / samplesPerBlock);
 }
 
 void TestPluginAudioProcessor::releaseResources()
 {
-    // When playback stops, you can use this as an opportunity to free up any
-    // spare memory, etc.
+    transportSource.releaseResources();
 }
 
 #ifndef JucePlugin_PreferredChannelConfigurations
@@ -144,6 +144,7 @@ void TestPluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, j
     for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
         buffer.clear (i, 0, buffer.getNumSamples());
     
+   
     const float currentLevel = level.load();
     const float levelPrev = levelPrevious.load();
     if (std::abs(levelPrev - currentLevel) < 0.01) {
@@ -167,6 +168,26 @@ void TestPluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, j
         }
         levelPrevious.store(currentLevel);
     }
+    meterSource.measureBlock (buffer);
+    
+    // Apply noise per channel
+    // Allocate space for the noise
+    juce::AudioBuffer<float> noiseBuffer(totalNumInputChannels, buffer.getNumSamples());
+    if (readerSource.get() == nullptr)
+    {
+        return;
+    }
+    transportSource.getNextAudioBlock(juce::AudioSourceChannelInfo(noiseBuffer));
+    
+    for (int channel = 0; channel < totalNumInputChannels; ++channel)
+    {
+        auto* channelData = buffer.getWritePointer (channel);
+        auto* noiseData = noiseBuffer.getReadPointer(channel);
+        for (int i=0;i<buffer.getNumSamples();++i) {
+            channelData[i] = channelData[i] + meterSource.getMaxLevel(channel) * noiseData[i];
+        }
+    }
+    //std::cout << "Level is: " << meterSource.getRMSLevel(0) << "%\n";
 }
 
 //==============================================================================
