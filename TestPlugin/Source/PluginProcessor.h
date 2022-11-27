@@ -71,6 +71,8 @@ public:
     juce::AudioFormatManager formatManager;
     std::unique_ptr<juce::AudioFormatReaderSource> readerSource;
     juce::AudioTransportSource transportSource;
+    juce::AudioSampleBuffer fileBuffer;
+    int position;
 private:
     foleys::LevelMeterSource meterSource;
     

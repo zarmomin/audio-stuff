@@ -19,14 +19,16 @@ TestPluginAudioProcessor::TestPluginAudioProcessor()
                       #endif
                        .withOutput ("Output", juce::AudioChannelSet::stereo(), true)
                      #endif
-                       ), level(1.0f), levelPrevious(1.0f)
+                       ), level(1.0f), levelPrevious(1.0f), position(-1)
 #endif
 {
     transportSource.setLooping(true);
+    formatManager.registerBasicFormats();
 }
 
 TestPluginAudioProcessor::~TestPluginAudioProcessor()
 {
+    transportSource.setSource(nullptr);
 }
 
 //==============================================================================
@@ -161,6 +163,7 @@ void TestPluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, j
         {
             float gainToApply = levelPrev;
             auto* channelData = buffer.getWritePointer (channel);
+            
             for (int i=0;i<buffer.getNumSamples();++i) {
                 gainToApply += gainIncrement;
                 channelData[i] *= currentLevel;
@@ -168,25 +171,29 @@ void TestPluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, j
         }
         levelPrevious.store(currentLevel);
     }
-    meterSource.measureBlock (buffer);
     
     // Apply noise per channel
-    // Allocate space for the noise
-    juce::AudioBuffer<float> noiseBuffer(totalNumInputChannels, buffer.getNumSamples());
-    if (readerSource.get() == nullptr)
-    {
+    if (position < 0) {
         return;
     }
-    transportSource.getNextAudioBlock(juce::AudioSourceChannelInfo(noiseBuffer));
+    int noise_idx = position;
     
     for (int channel = 0; channel < totalNumInputChannels; ++channel)
     {
+        float duckFactor = buffer.getMagnitude(channel, 0, buffer.getNumSamples());
+        int noiseChannel = channel;
+        if (fileBuffer.getNumChannels() == 1)
+            noiseChannel = 0;
+            
         auto* channelData = buffer.getWritePointer (channel);
-        auto* noiseData = noiseBuffer.getReadPointer(channel);
+        auto* noiseData = fileBuffer.getReadPointer(noiseChannel);
         for (int i=0;i<buffer.getNumSamples();++i) {
-            channelData[i] = channelData[i] + meterSource.getMaxLevel(channel) * noiseData[i];
+            ++noise_idx;
+            if (noise_idx == fileBuffer.getNumSamples()) noise_idx = 0;
+            channelData[i] = channelData[i] + duckFactor * noiseData[position];
         }
     }
+    position = noise_idx;
     //std::cout << "Level is: " << meterSource.getRMSLevel(0) << "%\n";
 }
 
