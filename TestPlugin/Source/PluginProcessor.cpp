@@ -8,16 +8,47 @@
 
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
+#include <memory>
 
 //==============================================================================
 TestPluginAudioProcessor::TestPluginAudioProcessor()
 : AudioProcessor (BusesProperties()
                   .withInput  ("Input",  juce::AudioChannelSet::stereo(), true)
                   .withOutput ("Output", juce::AudioChannelSet::stereo(), true)
-                  ), level(1.0f), levelPrevious(1.0f), position(-1), treeState (*this, nullptr, "Parameters" ,createParameters())
+                  ), position(-1), treeState (*this, nullptr, "Parameters" ,createParameters()), previousNoiseSample(-1)
 {
     transportSource.setLooping(true);
     formatManager.registerBasicFormats();
+}
+
+void TestPluginAudioProcessor::loadNoiseFromFile() {
+    
+    juce::String filename = dynamic_cast<juce::AudioParameterChoice*>(treeState.getParameter("noiseType"))->getCurrentChoiceName();
+    DBG("loading..");
+    DBG(filename);
+    
+    std::stringstream file_ss;
+    file_ss <<"/Users/nico/Downloads/crackle_samples/";
+    file_ss << filename;
+    file_ss << ".wav";
+    
+    auto file = juce::File(file_ss.str());
+    std::unique_ptr<juce::AudioFormatReader> reader (formatManager.createReaderFor (file)); // [2]
+    
+    if (reader.get() != nullptr)
+    {
+        std::lock_guard<std::mutex> input_file_mutex(input_file_mutex_);
+        fileBuffer.clear();
+        // Todo(nscheidt): figure out the memory limit here.
+        fileBuffer.setSize ((int) reader->numChannels, (int) reader->lengthInSamples);  // [4]
+        reader->read (&fileBuffer,                                                      // [5]
+                      0,                                                                //  [5.1]
+                      (int) reader->lengthInSamples,                                    //  [5.2]
+                      0,                                                                //  [5.3]
+                      true,                                                             //  [5.4]
+                      true);                                                            //  [5.5]
+        position = 0;
+    }
 }
 
 TestPluginAudioProcessor::~TestPluginAudioProcessor()
@@ -139,16 +170,28 @@ void TestPluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, j
     for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
         buffer.clear (i, 0, buffer.getNumSamples());
     
-    const float currentLevel = level.load();
+    const bool shouldApplyNoise = treeState.getRawParameterValue("applyNoise")->load();
+    const bool duck = treeState.getRawParameterValue("duck")->load();
+    int currentChoice = std::round(treeState.getRawParameterValue("noiseType")->load());
+
+    if (previousNoiseSample != currentChoice) {
+        loadNoiseFromFile();
+        previousNoiseSample = currentChoice;
+    }
     // Apply noise per channel
-    if (position < 0) {
+    if (position < 0 || !shouldApplyNoise) {
         return;
     }
+    
+    std::lock_guard<std::mutex> inputFileMutex(input_file_mutex_);
     int noise_idx = position;
+    
+    const float currentGain = (treeState.getRawParameterValue("gain"))->load();
     
     for (int channel = 0; channel < totalNumInputChannels; ++channel)
     {
         float duckFactor = buffer.getMagnitude(channel, 0, buffer.getNumSamples());
+        if (duck) duckFactor *= -1;
         int noiseChannel = channel;
         if (fileBuffer.getNumChannels() == 1)
             noiseChannel = 0;
@@ -158,8 +201,7 @@ void TestPluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, j
         for (int i=0;i<buffer.getNumSamples();++i) {
             ++noise_idx;
             if (noise_idx == fileBuffer.getNumSamples()) noise_idx = 0;
-            channelData[i] = channelData[i] + (1 + duckFactor) * currentLevel * noiseData[position];
-            
+            channelData[i] = channelData[i] + (1 + duckFactor) * currentGain * noiseData[position];
         }
     }
     position = noise_idx;
@@ -214,12 +256,18 @@ juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
 juce::AudioProcessorValueTreeState::ParameterLayout TestPluginAudioProcessor::createParameters() {
     std::vector<std::unique_ptr<juce::RangedAudioParameter>> params;
     params.push_back(std::make_unique<juce::AudioParameterFloat> (juce::ParameterID { "gain", 1 },
-                                                                  "Gain",
+                                                                  "Dry/Wet",
                                                                   0.0f,
                                                                   10.0f,
                                                                   1.0f));
-    params.push_back(std::make_unique<juce::AudioParameterBool> (juce::ParameterID { "invertPhase", 1 },
-                                                                 "Invert Phase",
-                                                                 false));
+    params.push_back(std::make_unique<juce::AudioParameterBool> (juce::ParameterID { "applyNoise", 1 },
+                                                                 "Apply Noise",
+                                                                 true));
+    params.push_back(std::make_unique<juce::AudioParameterBool> (juce::ParameterID { "duck", 1 },
+                                                                 "Duck",
+                                                                 true));
+    juce::StringArray choices ({"CRACKLE_LOUD", "CRACKLE_NASTY", "CRACKLE", "CRACKLE2"});
+    
+    params.push_back(std::make_unique<juce::AudioParameterChoice>(juce::ParameterID {"noiseType", 1}, "Noise Type", choices, 0));
     return {params.begin(), params.end()};
 }

@@ -23,7 +23,9 @@ class TestPluginAudioProcessor  : public juce::AudioProcessor
                             #endif
 {
 public:
-    //==============================================================================
+    void extracted();
+    
+//==============================================================================
     TestPluginAudioProcessor();
     ~TestPluginAudioProcessor() override;
 
@@ -58,18 +60,19 @@ public:
     //==============================================================================
     void getStateInformation (juce::MemoryBlock& destData) override;
     void setStateInformation (const void* data, int sizeInBytes) override;
-public:
-    std::atomic<float> level;
-    std::atomic<float> levelPrevious;
-    // todo(nico): make private, add accessors
+    
+private:
     juce::AudioFormatManager formatManager;
     std::unique_ptr<juce::AudioFormatReaderSource> readerSource;
     juce::AudioTransportSource transportSource;
     juce::AudioSampleBuffer fileBuffer;
     int position;
     juce::AudioProcessorValueTreeState treeState;
+    std::mutex input_file_mutex_;
+    int previousNoiseSample;
     
 private:
+    void loadNoiseFromFile();
     juce::AudioProcessorValueTreeState::ParameterLayout createParameters();
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (TestPluginAudioProcessor)
