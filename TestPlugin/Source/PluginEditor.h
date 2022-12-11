@@ -10,7 +10,6 @@
 
 #include <JuceHeader.h>
 #include "PluginProcessor.h"
-#include "ff_meters.h"
 
 //==============================================================================
 /**
@@ -28,10 +27,7 @@ private:
     // This reference is provided as a quick way for your editor to
     // access the processor object that created it.
     TestPluginAudioProcessor& audioProcessor;
-    juce::Slider volumedBSlider;
-    juce::Label volumeLabel;
-    juce::Label levelLabel;
-    
+    juce::Slider volumedBSlider {juce::Slider::SliderStyle::Rotary, juce::Slider::TextEntryBoxPosition::TextBoxBelow};
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (TestPluginAudioProcessorEditor)
 };

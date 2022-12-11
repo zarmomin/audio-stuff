@@ -9,7 +9,6 @@
 #pragma once
 
 #include <JuceHeader.h>
-#include "ff_meters.h"
 
 //#include <juce_audio_formats/format/juce_AudioFormatManager.h>
 //#include <juce_audio_formats/format/juce_AudioFormatReaderSource.h>
@@ -59,11 +58,6 @@ public:
     //==============================================================================
     void getStateInformation (juce::MemoryBlock& destData) override;
     void setStateInformation (const void* data, int sizeInBytes) override;
-    foleys::LevelMeterSource& getMeterSource()
-        {
-            return meterSource;
-        }
-
 public:
     std::atomic<float> level;
     std::atomic<float> levelPrevious;
@@ -73,10 +67,10 @@ public:
     juce::AudioTransportSource transportSource;
     juce::AudioSampleBuffer fileBuffer;
     int position;
-private:
-    foleys::LevelMeterSource meterSource;
+    juce::AudioProcessorValueTreeState treeState;
     
 private:
+    juce::AudioProcessorValueTreeState::ParameterLayout createParameters();
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (TestPluginAudioProcessor)
 };

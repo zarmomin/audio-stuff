@@ -5,10 +5,6 @@
               jucerFormatVersion="1">
   <MAINGROUP id="TP6PRw" name="NicosFirstVolumePlugin">
     <GROUP id="{91B6C2C7-B9F7-95E5-4191-0F90A7A3EDEE}" name="Source">
-      <FILE id="KHVHeO" name="ff_meters.cpp" compile="1" resource="0" file="Source/ff_meters.cpp"
-            xcodeResource="0"/>
-      <FILE id="eAsSWp" name="ff_meters.h" compile="0" resource="0" file="Source/ff_meters.h"
-            xcodeResource="0"/>
       <FILE id="xWuWsw" name="PluginProcessor.cpp" compile="1" resource="0"
             file="Source/PluginProcessor.cpp"/>
       <FILE id="UvE5OZ" name="PluginProcessor.h" compile="0" resource="0"
