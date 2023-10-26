@@ -10,10 +10,6 @@
 
 #include <JuceHeader.h>
 #include "NoiseOverlay.hpp"
-//#include <juce_audio_formats/format/juce_AudioFormatManager.h>
-//#include <juce_audio_formats/format/juce_AudioFormatReaderSource.h>
-//#include <juce_audio_devices/sources/juce_AudioTransportSource.h>
-
 //==============================================================================
 /**
  */
@@ -23,8 +19,6 @@ class TestPluginAudioProcessor  : public juce::AudioProcessor
 #endif
 {
 public:
-    void extracted();
-    
     //==============================================================================
     TestPluginAudioProcessor();
     ~TestPluginAudioProcessor() override;
@@ -63,7 +57,7 @@ public:
     
 private:
     juce::AudioProcessorValueTreeState treeState;
-    NoiseOverlay noise;
+    std::array<std::unique_ptr<NoiseOverlay>, 2u> noise;
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (TestPluginAudioProcessor)
 };

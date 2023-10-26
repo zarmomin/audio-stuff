@@ -41,13 +41,13 @@
  #define JucePlugin_Enable_ARA             0
 #endif
 #ifndef  JucePlugin_Name
- #define JucePlugin_Name                   "NicosFirstVolumePlugin"
+ #define JucePlugin_Name                   "NoiseAndDuck"
 #endif
 #ifndef  JucePlugin_Desc
- #define JucePlugin_Desc                   "NicosFirstVolumePlugin"
+ #define JucePlugin_Desc                   "NoiseAndDuck"
 #endif
 #ifndef  JucePlugin_Manufacturer
- #define JucePlugin_Manufacturer           "yourcompany"
+ #define JucePlugin_Manufacturer           "Nico"
 #endif
 #ifndef  JucePlugin_ManufacturerWebsite
  #define JucePlugin_ManufacturerWebsite    "www.yourcompany.com"
@@ -101,19 +101,19 @@
  #define JucePlugin_AUSubType              JucePlugin_PluginCode
 #endif
 #ifndef  JucePlugin_AUExportPrefix
- #define JucePlugin_AUExportPrefix         NicosFirstVolumePluginAU
+ #define JucePlugin_AUExportPrefix         NoiseAndDuckAU
 #endif
 #ifndef  JucePlugin_AUExportPrefixQuoted
- #define JucePlugin_AUExportPrefixQuoted   "NicosFirstVolumePluginAU"
+ #define JucePlugin_AUExportPrefixQuoted   "NoiseAndDuckAU"
 #endif
 #ifndef  JucePlugin_AUManufacturerCode
  #define JucePlugin_AUManufacturerCode     JucePlugin_ManufacturerCode
 #endif
 #ifndef  JucePlugin_CFBundleIdentifier
- #define JucePlugin_CFBundleIdentifier     com.yourcompany.NicosFirstVolumePlugin
+ #define JucePlugin_CFBundleIdentifier     com.yourcompany.NoiseAndDuck
 #endif
 #ifndef  JucePlugin_AAXIdentifier
- #define JucePlugin_AAXIdentifier          com.yourcompany.NicosFirstVolumePlugin
+ #define JucePlugin_AAXIdentifier          com.yourcompany.NoiseAndDuck
 #endif
 #ifndef  JucePlugin_AAXManufacturerCode
  #define JucePlugin_AAXManufacturerCode    JucePlugin_ManufacturerCode
@@ -137,7 +137,7 @@
  #define JucePlugin_IAASubType             JucePlugin_PluginCode
 #endif
 #ifndef  JucePlugin_IAAName
- #define JucePlugin_IAAName                "yourcompany: NicosFirstVolumePlugin"
+ #define JucePlugin_IAAName                "Nico: NoiseAndDuck"
 #endif
 #ifndef  JucePlugin_VSTNumMidiInputs
  #define JucePlugin_VSTNumMidiInputs       16
@@ -152,10 +152,10 @@
  #define JucePlugin_ARATransformationFlags  0
 #endif
 #ifndef  JucePlugin_ARAFactoryID
- #define JucePlugin_ARAFactoryID           "com.yourcompany.NicosFirstVolumePlugin.factory"
+ #define JucePlugin_ARAFactoryID           "com.yourcompany.NoiseAndDuck.factory"
 #endif
 #ifndef  JucePlugin_ARADocumentArchiveID
- #define JucePlugin_ARADocumentArchiveID   "com.yourcompany.NicosFirstVolumePlugin.aradocumentarchive.1.0.0"
+ #define JucePlugin_ARADocumentArchiveID   "com.yourcompany.NoiseAndDuck.aradocumentarchive.1.0.0"
 #endif
 #ifndef  JucePlugin_ARACompatibleArchiveIDs
  #define JucePlugin_ARACompatibleArchiveIDs  ""

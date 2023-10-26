@@ -1,10 +1,13 @@
 #include "NoiseOverlay.hpp"
 
+static const juce::StringArray noiseTypes ({"CRACKLE_LOUD", "CRACKLE_NASTY", "CRACKLE", "CRACKLE2"});
+
 NoiseOverlay::NoiseOverlay(juce::AudioProcessorValueTreeState& _treeState, size_t instance_idx) : treeState(_treeState),
-position(-1),
-previousNoiseSample(-1),
-instance_index(instance_idx) {
-    transportSource.setLooping(true);
+noiseBufferPosition(-1),
+previousFileIndex(-1),
+instanceIndex(instance_idx) {
+    // Loop the noise sample.
+    noiseInputSource.setLooping(true);
     formatManager.registerBasicFormats();
     addParameters();
 }
@@ -13,75 +16,87 @@ instance_index(instance_idx) {
 void NoiseOverlay::loadNoiseFromFile() {
     juce::String filename = dynamic_cast<juce::AudioParameterChoice*>(treeState.getParameter(fileToPlayParamName))->getCurrentChoiceName();
     
-    std::stringstream file_ss;
-    file_ss <<"/Users/nico/Downloads/crackle_samples/";
-    file_ss << filename;
-    file_ss << ".wav";
+    std::stringstream fileSS;
+    fileSS <<"/Users/nico/Downloads/crackle_samples/";
+    fileSS << filename;
+    fileSS << ".wav";
     
-    auto file = juce::File(file_ss.str());
+    auto file = juce::File(fileSS.str());
     std::unique_ptr<juce::AudioFormatReader> reader (formatManager.createReaderFor (file));
     
     if (reader.get() != nullptr)
     {
-        fileBuffer.clear();
+        noiseFileBuffer.clear();
         // Todo(nscheidt): figure out the memory limit here.
-        fileBuffer.setSize ((int) reader->numChannels, (int) reader->lengthInSamples);
-        reader->read (&fileBuffer,
-                      0,
+        noiseFileBuffer.setSize ((int) reader->numChannels, (int) reader->lengthInSamples);
+        reader->read (&noiseFileBuffer,
+                      /*startSample*/ 0,
                       (int) reader->lengthInSamples,
-                      0,
-                      true,
-                      true);
-        position = 0;
+                      /*readerStartSample*/ 0,
+                      /*useLeftChannel*/ true,
+                      /*useRightChannel*/ true);
+        noiseBufferPosition = 0;
     }
 }
 
 void NoiseOverlay::prepareToPlay(double sampleRate , int samplesPerBlock){
-    transportSource.prepareToPlay (samplesPerBlock, sampleRate);
+    noiseInputSource.prepareToPlay (samplesPerBlock, sampleRate);
 }
 
 void NoiseOverlay::processBlock(juce::AudioBuffer<float> & buffer) {
     const bool shouldApplyNoise = treeState.getRawParameterValue(enabledParamName)->load();
-    const bool duck = treeState.getRawParameterValue(duckParamName)->load();
-    int currentChoice = std::round(treeState.getRawParameterValue(fileToPlayParamName)->load());
     
-    if (previousNoiseSample != currentChoice) {
+    const int selectedFileIndex = std::round(treeState.getRawParameterValue(fileToPlayParamName)->load());
+    
+    if (previousFileIndex != selectedFileIndex) {
         loadNoiseFromFile();
-        previousNoiseSample = currentChoice;
+        previousFileIndex = selectedFileIndex;
     }
-    // Apply noise per channel
-    if (position < 0 || !shouldApplyNoise) {
+    
+    // Early exit if we don't have a noise file or want to skip it anyways
+    if (noiseBufferPosition < 0 || !shouldApplyNoise) {
         return;
     }
     
-    int noise_idx = position;
-    
     const float currentGain = (treeState.getRawParameterValue(gainParamName))->load();
+    const bool duck = treeState.getRawParameterValue(duckParamName)->load();
     
+    // Since the noise file is most likely not exactly the lenght of the buffer, we need to keep track of the read position in that buffer.
+    int noiseIndex = noiseBufferPosition;
     for (int channel = 0; channel < buffer.getNumChannels(); ++channel)
     {
+        noiseIndex = noiseBufferPosition;
         float duckFactor = buffer.getMagnitude(channel, 0, buffer.getNumSamples());
-        if (duck) duckFactor *= -1;
+        
+        if (duck) {
+            duckFactor *= -1;
+        }
+        // If the noise is single-channel and our track dual, we apply the same noise channel to all input channels.
         int noiseChannel = channel;
-        if (fileBuffer.getNumChannels() == 1)
+        if (noiseFileBuffer.getNumChannels() == 1) {
             noiseChannel = 0;
+        }
         
         auto* channelData = buffer.getWritePointer (channel);
-        auto* noiseData = fileBuffer.getReadPointer(noiseChannel);
+        auto* noiseData = noiseFileBuffer.getReadPointer(noiseChannel);
         for (int i=0;i<buffer.getNumSamples();++i) {
-            ++noise_idx;
-            if (noise_idx == fileBuffer.getNumSamples()) noise_idx = 0;
-            channelData[i] = channelData[i] + (1 + duckFactor) * currentGain * noiseData[position];
+            ++noiseIndex;
+            if (noiseIndex == noiseFileBuffer.getNumSamples()) {
+                // We read the entire noise sample, time to loop back to the start
+                noiseIndex = 0;
+            }
+            // Actually apply the noise to the signal here. Include duck/follow and gain
+            channelData[i] = channelData[i] + (1 + duckFactor) * currentGain * noiseData[noiseBufferPosition];
         }
     }
-    position = noise_idx;
+    noiseBufferPosition = noiseIndex;
     
 }
 
 std::string NoiseOverlay::assembleParamName(const std::string name) {
-    std::stringstream param_name_ss;
-    param_name_ss << instance_index << "_" << name;
-    return param_name_ss.str();
+    std::stringstream paramNameSs;
+    paramNameSs << instanceIndex << "_" << name;
+    return paramNameSs.str();
 }
 
 void NoiseOverlay::addParameters() {
@@ -92,17 +107,16 @@ void NoiseOverlay::addParameters() {
     
     treeState.createAndAddParameter(std::make_unique<juce::AudioParameterFloat> (juce::ParameterID { gainParamName, 1 },
                                                                                  "Dry/Wet",
-                                                                                 0.0f,
-                                                                                 10.0f,
-                                                                                 1.0f));
+                                                                                 /*min*/0.0f,
+                                                                                 /*max*/10.0f,
+                                                                                 /*default*/1.0f));
     treeState.createAndAddParameter(std::make_unique<juce::AudioParameterBool> (juce::ParameterID { enabledParamName, 1 },
                                                                                 "Apply Noise",
-                                                                                true));
+                                                                                /*default*/true));
     treeState.createAndAddParameter(std::make_unique<juce::AudioParameterBool> (juce::ParameterID { duckParamName, 1 },
                                                                                 "Duck",
-                                                                                true));
-    juce::StringArray choices ({"CRACKLE_LOUD", "CRACKLE_NASTY", "CRACKLE", "CRACKLE2"});
+                                                                                /*default*/true));
     
-    treeState.createAndAddParameter(std::make_unique<juce::AudioParameterChoice>(juce::ParameterID {fileToPlayParamName, 1}, "Noise Type", choices, 0));
+    treeState.createAndAddParameter(std::make_unique<juce::AudioParameterChoice>(juce::ParameterID {fileToPlayParamName, 1}, "Noise Type", noiseTypes, 0));
     
 }

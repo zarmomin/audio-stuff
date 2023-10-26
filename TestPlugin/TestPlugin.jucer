@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<JUCERPROJECT id="vdjtL7" name="NicosFirstVolumePlugin" projectType="audioplug"
-              useAppConfig="0" addUsingNamespaceToJuceHeader="0" displaySplashScreen="1"
-              jucerFormatVersion="1">
-  <MAINGROUP id="TP6PRw" name="NicosFirstVolumePlugin">
+<JUCERPROJECT id="vdjtL7" name="NoiseAndDuck" projectType="audioplug" useAppConfig="0"
+              addUsingNamespaceToJuceHeader="0" displaySplashScreen="1" jucerFormatVersion="1"
+              pluginManufacturer="Nico">
+  <MAINGROUP id="TP6PRw" name="NoiseAndDuck">
     <GROUP id="{91B6C2C7-B9F7-95E5-4191-0F90A7A3EDEE}" name="Source">
       <FILE id="TBWI1u" name="NoiseOverlay.cpp" compile="1" resource="0"
             file="Source/NoiseOverlay.cpp"/>
@@ -22,8 +22,8 @@
   <EXPORTFORMATS>
     <XCODE_MAC targetFolder="Builds/MacOSX">
       <CONFIGURATIONS>
-        <CONFIGURATION isDebug="1" name="Debug" targetName="TestPlugin"/>
-        <CONFIGURATION isDebug="0" name="Release" targetName="TestPlugin"/>
+        <CONFIGURATION isDebug="1" name="Debug" targetName="NoiseAndDuck"/>
+        <CONFIGURATION isDebug="0" name="Release" targetName="NoiseAndDuck"/>
       </CONFIGURATIONS>
       <MODULEPATHS>
         <MODULEPATH id="juce_audio_basics" path="../../modules"/>

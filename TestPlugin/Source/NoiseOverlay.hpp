@@ -1,10 +1,3 @@
-//
-//  NoiseOverlay.hpp
-//  NicosFirstVolumePlugin
-//
-//  Created by Nicolas Scheidt on 11/12/2022.
-//
-
 #ifndef NoiseOverlay_hpp
 #define NoiseOverlay_hpp
 
@@ -13,11 +6,11 @@
 
 class NoiseOverlay {
 public:
-    NoiseOverlay(juce::AudioProcessorValueTreeState& treeState, size_t instance_idx);
+    explicit NoiseOverlay(juce::AudioProcessorValueTreeState& treeState, size_t instance_idx);
     void processBlock (juce::AudioBuffer<float>& buffer) ;
     void prepareToPlay (double sampleRate, int samplesPerBlock);
-    void releaseResources() {transportSource.releaseResources();}
-    ~NoiseOverlay(){transportSource.setSource(nullptr);}
+    void releaseResources() {noiseInputSource.releaseResources();}
+    ~NoiseOverlay() { noiseInputSource.setSource(nullptr); }
 private:
     void loadNoiseFromFile();
     void addParameters();
@@ -25,12 +18,12 @@ private:
 private:
     juce::AudioFormatManager formatManager;
     std::unique_ptr<juce::AudioFormatReaderSource> readerSource;
-    juce::AudioTransportSource transportSource;
-    juce::AudioSampleBuffer fileBuffer;
+    juce::AudioTransportSource noiseInputSource;
+    juce::AudioSampleBuffer noiseFileBuffer;
     juce::AudioProcessorValueTreeState& treeState;
-    int position;
-    int previousNoiseSample;
-    const size_t instance_index;
+    int noiseBufferPosition;
+    int previousFileIndex;
+    const size_t instanceIndex;
     std::string gainParamName, enabledParamName, duckParamName, fileToPlayParamName;
 };
 #endif /* NoiseOverlay_hpp */

@@ -1,5 +1,5 @@
-/*
- ==============================================================================
+ /*
+ =============================================================================
  
  This file contains the basic framework code for a JUCE plugin processor.
  
@@ -15,7 +15,10 @@ TestPluginAudioProcessor::TestPluginAudioProcessor()
                   .withInput  ("Input",  juce::AudioChannelSet::stereo(), true)
                   .withOutput ("Output", juce::AudioChannelSet::stereo(), true)),
 treeState(*this, nullptr),
-noise(treeState, 1u)
+noise{
+    std::make_unique<NoiseOverlay>(treeState, 1u),
+    std::make_unique<NoiseOverlay>(treeState, 2u),
+}
 {
     treeState.state = juce::ValueTree(juce::Identifier(JucePlugin_Name));
 }
@@ -90,12 +93,16 @@ void TestPluginAudioProcessor::changeProgramName (int index, const juce::String&
 //==============================================================================
 void TestPluginAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
-    noise.prepareToPlay (samplesPerBlock, sampleRate);
+    for (auto& n : noise) {
+        n->prepareToPlay (samplesPerBlock, sampleRate);
+    }
 }
 
 void TestPluginAudioProcessor::releaseResources()
 {
-    noise.releaseResources();
+    for (auto& n : noise) {
+        n->releaseResources();
+    }
 }
 
 #ifndef JucePlugin_PreferredChannelConfigurations
@@ -136,9 +143,12 @@ void TestPluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, j
     // This is here to avoid people getting screaming feedback
     // when they first compile a plugin, but obviously you don't need to keep
     // this code if your algorithm always overwrites all the output channels.
-    for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
+    for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i) {
         buffer.clear (i, 0, buffer.getNumSamples());
-    noise.processBlock(buffer);
+    }
+    for (auto& n : noise) {
+        n->processBlock(buffer);
+    }
 }
 
 //==============================================================================
